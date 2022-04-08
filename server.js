@@ -1,40 +1,49 @@
-var elasticsearch = require('elasticsearch');
-var client = new elasticsearch.Client({
-   hosts: [ 'http://elastic:iH8PiL53Me634F8z1aTU@192.168.1.21:9200']
+const http = require("http");
+const app = require("./app");
+require("dotenv").config();
+const portNormalizer = (portnum) => {
+  const port = parseInt(portnum, 10);
+  if (isNaN(port)) return portnum;
+
+  if (port >= 0) return port;
+
+  return false;
+};
+
+const port = portNormalizer(process.env.PORT);
+
+app.set("port", port);
+
+const errorHandler = (error) => {
+  if (error.syscall !== "listen") throw error;
+
+  const address = server.address();
+  const bind =
+    typeof address === "string" ? "pipe : " + address : "port : " + port;
+
+  switch (error.code) {
+    case "EACCES":
+      console.log(bind + " requires higher access!");
+      break;
+
+    case "EADDRINUSE":
+      console.log(bind + " is already in use. ");
+      process.exit(1);
+      break;
+
+    default:
+      throw error;
+  }
+};
+
+const server = http.createServer(app);
+
+server.on("error", errorHandler);
+server.on("listening", () => {
+  const address = server.address();
+  const bind =
+    typeof address === "string" ? "pipe : " + address : "port : " + port;
+  console.log("Listening on " + bind);
 });
 
-client.ping({
-    requestTimeout: 30000,
-}, function(error) {
-    if (error) {
-        console.error('elasticsearch cluster is down!');
-    } else {
-        console.log('Everything is ok');
-    }
-});
-
-
-
-client.indices.create({
-    index: 'blog'
-}, function(err, resp, status) {
-    if (err) {
-        console.log(err);
-    } else {
-        console.log("create", resp);
-    }
-});
-
-
-client.index({
-    index: 'blog',
-    id: '1',
-    type: 'posts',
-    body: {
-        "PostName": "Integrating Elasticsearch Into Your Node.js Application",
-        "PostType": "Tutorial",
-        "PostBody": "This is the text of our tutorial about using Elasticsearch in your Node.js application.",
-    }
-}, function(err, resp, status) {
-    console.log(resp);
-});
+server.listen(port);
